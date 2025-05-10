@@ -174,7 +174,7 @@ class ApiContentTranslationPublish extends ApiBase
 
 		$apiParams = [
 			'action' => 'edit',
-			'title' => $params['to'] . "/" . $params['sourcetitle'], // $title->getPrefixedDBkey(),
+			'title' => ($params['from'] === 'mdwiki') ? $params['to'] . "/" . $params['sourcetitle'] : $title->getPrefixedDBkey(),
 			'text' => $wikitext,
 			'summary' => $summary,
 		];

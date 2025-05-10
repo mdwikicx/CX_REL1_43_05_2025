@@ -174,8 +174,10 @@ mw.cx.SiteMapper.prototype.getCXServerUrl = function (module, params) {
 		cxserverURL = cxserverURL.replace('v1', 'v2');
 	}
 	// if module has /mdwiki then replace it with /en
-	if (module.indexOf('/mdwiki') > -1) {
-		module = module.replace('/mdwiki', '/en');
+	// if (module.indexOf('/mdwiki') > -1) {
+		// module = module.replace('/mdwiki', '/en');
+	if (module.endsWith('/mdwiki')) {
+		module = module.replace(/\/mdwiki$/, '/en');
 	}
 	return cxserverURL + module;
 };
