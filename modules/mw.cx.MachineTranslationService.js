@@ -15,6 +15,9 @@ mw.cx.MachineTranslationService = function MwCxMachineTranslationService(
 	sourceLanguage, targetLanguage, siteMapper
 ) {
 	this.sourceLanguage = sourceLanguage;
+
+	// if (sourceLanguage === 'mdwiki') { this.sourceLanguage = 'en'; }
+
 	this.targetLanguage = targetLanguage;
 	this.siteMapper = siteMapper;
 
@@ -148,6 +151,12 @@ mw.cx.MachineTranslationService.prototype.fetchProviders = function () {
 		$to: this.targetLanguage
 	});
 
+	// {"mt":["MinT","Google"]}
+	// 2024 By: Ibrahem Qasim
+	if (this.targetLanguage === "or") {
+		return $.Deferred().resolve(["Google"]);
+	}
+
 	return $.get(fetchProvidersUrl).then(function (response) {
 		return response.mt || [];
 	});
@@ -158,7 +167,97 @@ mw.cx.MachineTranslationService.prototype.fetchProvidersError = function () {
 	mw.log.error('[CX]', 'Unable to fetch machine translation providers.', arguments);
 };
 
+mw.cx.MachineTranslationService.prototype.cxtoken_error = function () {
+
+	// mw.hook('mw.cx.error').fire('Unable to fetch cxtoken. !! ');
+	let html_text = "<a href='https://mdwiki.toolforge.org/Translation_Dashboard/auth.php?a=login' target='_blank'>Translation Dashboard</a>";
+	mw.hook('mw.cx.error').fire('OAuth session expired, Please Login again in ');
+
+	// wait 2 seconds then do the next line
+
+	setTimeout(function () {
+		$('.cx-message-widget-message').append(
+			$('<a>')
+				.attr('href', 'https://mdwiki.toolforge.org/Translation_Dashboard/auth.php?a=login')
+				.attr('target', '_blank')
+				.text('Translation Dashboard')
+		);
+		$('.cx-message-widget-details').text(" Then refresh the page");
+
+	}, 2000)
+
+}
+
+mw.cx.MachineTranslationService.prototype.fetchCXServerToken_issue = function () {
+	// cxtoken
+
+	if (this.sourceLanguage === "mdwiki") {
+		var params = {
+			user: mw.user.getName(),
+			wiki: this.targetLanguage,
+			ty: "cxtoken",
+		}
+		const options = {
+			method: 'GET',
+			dataType: 'json'
+		}
+
+		var url = "https://mdwiki.toolforge.org/publish/token.php?" + $.param(params)
+
+		const result = fetch(url, options)
+			.then((response) => {
+				if (!response.ok) {
+					console.error('[CX] Error fetching mdwiki token:', response.status, response.statusText);
+					return response.json();
+				}
+				return response.json();
+			})
+			.then((data) => {
+				if (data.error && data.error.code === "no access") {
+					// mw.hook('mw.cx.error').fire('Unable to fetch cxtoken. !! ');
+					mw.cx.MachineTranslationService.prototype.cxtoken_error();
+					console.log('Fetch failed:', data);
+				} else {
+					console.log('Fetch successful:', data);
+				}
+			})
+			.catch(error => {
+				console.error('Error fetching mdwiki token:', error);
+			})
+		return result;
+	}
+
+	return new mw.Api().postWithToken('csrf', {
+		action: 'cxtoken',
+		assert: 'user'
+	});
+};
+
 mw.cx.MachineTranslationService.prototype.fetchCXServerToken = function () {
+	// cxtoken
+
+	if (this.sourceLanguage === "mdwiki") {
+		var params = {
+			user: mw.user.getName(),
+			wiki: this.targetLanguage,
+			ty: "cxtoken",
+		}
+		const options = {
+			method: 'GET',
+			dataType: 'json'
+		}
+
+		var url = "https://mdwiki.toolforge.org/publish/token.php?" + $.param(params)
+
+		const result = fetch(url, options)
+			.then((response) => response.json())
+			.catch(error => {
+				console.error('Error fetching mdwiki token:', error);
+			});
+
+		return result;
+	}
+
 	return new mw.Api().postWithToken('csrf', {
 		action: 'cxtoken',
 		assert: 'user'
@@ -232,3 +331,4 @@ mw.cx.MachineTranslationService.prototype.fetchTranslation = function (content, 
 		return response.contents;
 	});
 };
+

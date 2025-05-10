@@ -22,6 +22,7 @@
  */
 mw.cx.MwApiRequestManager = function MwCxMwApiRequestManager( sourceLanguage, targetLanguage, siteMapper ) {
 	this.sourceLanguage = sourceLanguage;
+	// if (sourceLanguage === 'mdwiki') { this.sourceLanguage = 'en'; }
 	this.targetLanguage = targetLanguage;
 	this.siteMapper = siteMapper;
 	this.titlePairCache = {};
