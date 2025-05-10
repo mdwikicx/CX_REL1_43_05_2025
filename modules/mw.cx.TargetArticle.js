@@ -225,8 +225,32 @@ mw.cx.TargetArticle.prototype.publishSuccess = function (response, jqXHR) {
 	}
 	// {"result":"error","edit":{"error":"noaccess","username":"Mr. Ibrahem"}}
 	if (publishResult.result === 'success') {
-		this.translation.setTargetURL(publishResult.targeturl);
-		return this.publishComplete(publishResult.targettitle || null);
+		var targeturl = publishResult.targeturl;
+		if (this.sourceLanguage === "mdwiki" && publishResult.published_to != "local") {
+			targeturl = publishResult.targeturl_wiki;
+		}
+		var qid = "";
+		var wd_result = "";
+		if (publishResult.LinkToWikidata) {
+			qid = publishResult.LinkToWikidata.qid;
+			console.log('LinkToWikidata: ' + JSON.stringify(publishResult.LinkToWikidata));
+			// LinkToWikidata: {"result":"success","qid":"Q474070"}
+			wd_result = publishResult.LinkToWikidata.result;
+		}
+
+		this.translation.setTargetURL(targeturl);
+
+		var new_title = publishResult.save_result_all.mdwiki_result.edit.title;
+		// mdwiki_result: {"warnings":{"main":{"*":"Unrecognized parameters: wpCaptchaId, wpCaptchaWord."}},"edit":{"new":"","result":"Success","pageid":9895285,"title":"مستخدم:Mr. Ibrahem/أوبلتوكسيماب","contentmodel":"wikitext","oldrevid":0,"newrevid":69736856,"newtimestamp":"2025-03-02T00:36:55Z","watched":""},"LinkToWikidata":{"error":"Cannot create link for namespace:2","nserror":"","qid":"Q7876570"}}
+
+		var done = this.publishComplete(new_title || null);
+
+		if (this.sourceLanguage === "mdwiki") {
+			var title2 = new_title || this.getTargetTitle()
+			mw.cx.TargetArticle.prototype.addMdwikiLinks(this.targetLanguage, title2, qid, wd_result)
+		}
+
+		return done;
 	}
 
 	if (publishResult && publishResult.edit && publishResult.edit.captcha) {
