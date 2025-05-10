@@ -42,6 +42,31 @@ use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
 use Wikimedia\Stats\IBufferingStatsdDataFactory;
 
+function post_to_target($params)
+{
+	// $url = 'https://mdwiki.toolforge.org/Translation_Dashboard/publish/main.php';
+	$url = 'https://mdwiki.toolforge.org/publish/main.php';
+	$ch = curl_init();
+
+	$usr_agent = "WikiProjectMed Translation Dashboard/1.0 (https://mdwiki.toolforge.org/; tools.mdwiki@toolforge.org)";
+
+	curl_setopt($ch, CURLOPT_URL, $url);
+	curl_setopt($ch, CURLOPT_POST, 1);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+	// mdwiki_result: {"response":"Requests must have a user agent"}
+	curl_setopt($ch, CURLOPT_USERAGENT, $usr_agent);
+	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
+	curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+
+	$response = curl_exec($ch);
+
+	curl_close($ch);
+	$js = json_decode($response, true) ?? ["response" => $response];
+	return $js;
+}
+
 class ApiContentTranslationPublish extends ApiBase
 {
 
