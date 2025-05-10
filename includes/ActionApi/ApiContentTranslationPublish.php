@@ -114,7 +114,7 @@ class ApiContentTranslationPublish extends ApiBase
 			'user' => $user_name,
 			'summary' => $summary,
 			'target' => $params['to'],
-			'campaign' => $params['campaign'],
+			'campaign' => $params['campaign'] ?? '',
 			'sourcetitle' => $params['sourcetitle'],
 		];
 
@@ -144,7 +144,7 @@ class ApiContentTranslationPublish extends ApiBase
 
 		$sourceRevisionId = $this->translation->translation['sourceRevisionId'];
 
-		$sourceLink = '[[:' . Sitemapper::getDomainCode($params['from'])
+		$sourceLink = '[[:' . SiteMapper::getDomainCode($params['from'])
 			. ':Special:Redirect/revision/'
 			. $sourceRevisionId
 			. '|' . $params['sourcetitle'] . ']] to:' . $params['to'] . " #mdwikicx";
