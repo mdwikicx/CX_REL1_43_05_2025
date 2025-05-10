@@ -98,13 +98,35 @@ class ApiContentTranslationPublish extends ApiBase
 		$this->translationStore = $translationStore;
 		$this->targetUrlCreator = $targetUrlCreator;
 		$this->changeTagsStore = $changeTagsStore;
+		$this->published_to = "local";
 	}
 
 	protected function getParsoidClient(): ParsoidClient
 	{
 		return $this->parsoidClientFactory->createParsoidClient();
 	}
+	protected function publishToMdwiki($title, $wikitext, $params, $sourceRevisionId, $summary, $user_name)
+	{
+		$t_Params = [
+			'title' => $title->getPrefixedDBkey(),
+			'revid' => $sourceRevisionId,
+			'text' => $wikitext,
+			'user' => $user_name,
+			'summary' => $summary,
+			'target' => $params['to'],
+			'campaign' => $params['campaign'],
+			'sourcetitle' => $params['sourcetitle'],
+		];
 
+		// wpCaptchaId, wpCaptchaWord
+		if (isset($params['wpCaptchaId'])) {
+			$t_Params['wpCaptchaId'] = $params['wpCaptchaId'];
+			$t_Params['wpCaptchaWord'] = $params['wpCaptchaWord'];
+		}
+
+		$mdwiki_result = post_to_target($t_Params);
+		return $mdwiki_result;
+	}
 	protected function saveWikitext($title, $wikitext, $params)
 	{
 		$categories = $this->getCategories($params);
