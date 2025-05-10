@@ -48,11 +48,16 @@ function post_to_target($params)
 	$url = 'https://mdwiki.toolforge.org/publish/main.php';
 	$ch = curl_init();
 
+	// if ($ch === false) {
+	// 	throw new \RuntimeException('curl_init() failed');
+	// }
+
 	$usr_agent = "WikiProjectMed Translation Dashboard/1.0 (https://mdwiki.toolforge.org/; tools.mdwiki@toolforge.org)";
 
 	curl_setopt($ch, CURLOPT_URL, $url);
 	curl_setopt($ch, CURLOPT_POST, 1);
 	curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
+
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
 	// mdwiki_result: {"response":"Requests must have a user agent"}
@@ -62,9 +67,25 @@ function post_to_target($params)
 
 	$response = curl_exec($ch);
 
+	$curlErr   = curl_error($ch);
+	$status    = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 	curl_close($ch);
-	$js = json_decode($response, true) ?? ["response" => $response];
-	return $js;
+
+	if ($response === false) {
+		return ['error' => $curlErr ?: 'Unknown cURL error', 'response' => $response];
+	}
+
+	if ($status !== 200) {
+		return ['error' => "Unexpected HTTP status $status", 'response' => $response];
+	}
+
+	$js = json_decode($response, true);
+
+	if ($js === null) {
+		return ['error' => 'Invalid JSON', 'response' => $response];
+	}
+
+	return $js ?? ['response' => $response];
 }
 
 class ApiContentTranslationPublish extends ApiBase
