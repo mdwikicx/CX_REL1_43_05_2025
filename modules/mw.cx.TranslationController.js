@@ -14,6 +14,7 @@
 mw.cx.TranslationController = function MwCxTranslationController(
 	translation, veTarget, siteMapper, config
 ) {
+	this.config = config;
 	this.translation = translation;
 	this.veTarget = veTarget;
 	this.siteMapper = siteMapper;
@@ -41,7 +42,8 @@ mw.cx.TranslationController = function MwCxTranslationController(
 	}
 
 	this.targetArticle = new mw.cx.TargetArticle( this.translation, this.veTarget, {
-		siteMapper: this.siteMapper
+		siteMapper: this.siteMapper,
+		campaign: this.config.campaign
 	} );
 	this.translationTracker = new mw.cx.TranslationTracker( this.veTarget, config );
 	this.saveScheduler = OO.ui.debounce( this.processSaveQueue.bind( this ), 5 * 1000 );
