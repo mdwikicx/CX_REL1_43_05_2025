@@ -272,6 +272,28 @@ mw.cx.TargetArticle.prototype.publishFail = function (errorCode, messageOrFailOb
 		this.getTargetTitle(),
 		data
 	);
+	let mddx = "OAuth session expired, Please Log again to Translation Dashboard";
+	// cx-message-widget-message
+	let mddxlink = "OAuth session expired, Please Log again to <a href='https://mdwiki.toolforge.org/Translation_Dashboard/auth.php?a=login' target='_blank'>Translation Dashboard</a>";
+	// {"result":"error","edit":{"error":"noaccess","username":"Mr. Ibrahem"}}
+	if (data.edit.error) {
+		if (data.edit.error === 'noaccess' || (data.edit.error && data.edit.error.code === 'noaccess')) {
+			this.showPublishError(mddx, "no access_keys in Translation_Dashboard");
+			// $('.cx-message-widget-message').html(mddxlink)
+			$('.cx-message-widget-message')
+				.empty()
+				.append(
+					$('<span>').text('OAuth session expired, Please Log again in '),
+					$('<a>')
+						.attr('href', 'https://mdwiki.toolforge.org/Translation_Dashboard/auth.php?a=login')
+						.attr('target', '_blank')
+						.text('Translation Dashboard')
+				);
+			$('.cx-message-widget-details').html(" Then refresh the page");
+			// $('.cx-message-widget-details').html("<a href='https://mdwiki.toolforge.org/Translation_Dashboard/auth.php?a=login' target='_blank'>Translation Dashboard</a>")
+			return;
+		}
+	}
 
 	const editError = data.error;
 	if (editError) {
