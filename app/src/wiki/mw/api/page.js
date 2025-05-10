@@ -215,7 +215,7 @@ const fetchSegmentedContent_mdwiki = (
   }
   const options = {
     method: 'GET',
-    dataType: 'json'
+    headers: { 'Accept': 'application/json' }
   }
   const searchParams = new URLSearchParams(cxServerParams);
 
