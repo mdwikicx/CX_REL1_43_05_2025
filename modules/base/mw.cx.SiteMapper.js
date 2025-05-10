@@ -83,12 +83,10 @@ mw.cx.SiteMapper.prototype.getLanguageCodeForWikiDomain = function (domain, fall
 mw.cx.SiteMapper.prototype.getApi = function (language, options) {
 	const domain = this.getWikiDomainCode(language);
 
-	var url;
-	if (language === 'mdwiki') {
-		url = this.SiteTemplates_mdwiki.api;
-	} else {
-		url = this.siteTemplates.api.replace('$1', domain);
-	}
+	const url = language === 'mdwiki'
+		? this.SiteTemplates_mdwiki.api
+		: this.siteTemplates.api.replace('$1', domain);
+
 	options = Object.assign({ anonymous: true }, options);
 	return new mw.ForeignApi(url, options);
 };
