@@ -85,6 +85,18 @@ mw.cx.init.Translation.prototype.init = function () {
 
 			this.sourceWikiPage.setRevision(sourcePageContent.revision);
 
+			if (this.sourceWikiPage.getLanguage() == "mdwiki") {
+				var segmented_error = sourcePageContent.error;
+				if (segmented_error) {
+					this.translationView.showMessage('error', mw.msg('cx-init-critical-error'), segmented_error);
+					// return;
+				} else if (sourcePageContent.segmentedContent.length === 0) {
+					// if length of segmentedContent is 0, it means the source page is empty print error message
+					this.translationView.showMessage('error', mw.msg('cx-init-critical-error'), 'Source text is empty refresh the page.');
+					// return;
+				}
+			}
+
 			return this.initTranslationModel(sourcePageContent.segmentedContent, draft).then((translationModel) => {
 				this.translationModel = translationModel;
 
@@ -258,7 +270,16 @@ mw.cx.init.Translation.prototype.attachToDOM = function (veTarget) {
  * @param {mw.cx.SiteMapper} siteMapper
  * @return {Promise}
  */
+
 mw.cx.init.Translation.prototype.fetchSourcePageContent = function (wikiPage, targetLanguage, siteMapper) {
+
+	if (wikiPage.getLanguage() === "mdwiki") {
+		let page_title = wikiPage.getTitle();
+		let user_name = mw.user.getName();
+		let tr_type = this.config.tr_type;
+		return mw.cx.TranslationMdwiki.fetchSourcePageContent_mdwiki(page_title, targetLanguage, tr_type, user_name);
+	}
+
 	const fetchParams = {
 		$sourcelanguage: siteMapper.getWikiDomainCode(wikiPage.getLanguage()),
 		$targetlanguage: targetLanguage,
@@ -372,6 +393,12 @@ mw.cx.init.Translation.prototype.fetchDraftTranslation = function (
  * @return {Promise<mw.cx.dm.DraftTranslationDTO|null>} Draft or null.
  */
 mw.cx.init.Translation.prototype.fetchDraftTranslationSuccess = function (draft, conflict) {
+	const admin_users = ['Doc James', 'Mr. Ibrahem 1'];
+	if (admin_users.includes(mw.user.getName())) {
+		console.log('[CX] fetchDraftTranslationSuccess. admin_users');
+		// Stop further processing
+		return Promise.resolve(null);
+	}
 	// Do not allow two users to start a draft at the same time. The API only returns
 	// a conflict (providing the conflicting translator's name and gender, if this is the case.
 	if (conflict) {
