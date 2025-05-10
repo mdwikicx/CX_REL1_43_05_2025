@@ -127,10 +127,10 @@ mw.cx.SiteMapper.prototype.getPageUrl = function (language, title, params, hash)
 	if (this.isMobileDomain()) {
 		prefix += '.m';
 	}
-	var templates = this.siteTemplates;
-	if (language === 'mdwiki') {
-		templates = this.SiteTemplates_mdwiki;
-	}
+	const templates = language === 'mdwiki'
+		? this.SiteTemplates_mdwiki
+		: this.siteTemplates;
+
 	let base = templates.view;
 	if (params && Object.keys(params).length > 0) {
 		base = templates.action || templates.view;
