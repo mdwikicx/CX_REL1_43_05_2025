@@ -341,26 +341,38 @@ class ApiContentTranslationPublish extends ApiBase
 		$editStatus = $saveresult['edit']['result'];
 
 		if ($editStatus === 'Success') {
-			if (isset($saveresult['edit']['newrevid'])) {
+			if (isset($save_edit['newrevid'])) {
 				$tags = $this->getTags($params);
 				// Add the tags post-send, after RC row insertion
-				$revId = intval($saveresult['edit']['newrevid']);
+				$revId = intval($save_edit['newrevid']);
 				DeferredUpdates::addCallableUpdate(function () use ($revId, $tags) {
 					$this->changeTagsStore->addTags($tags, null, $revId, null);
 				});
 			}
+			$title2 = $targetTitle->getPrefixedDBkey();
 
-			$targetURL = $this->targetUrlCreator->createTargetUrl($targetTitle->getPrefixedDBkey(), $params['to']);
+			if ($params['from'] === "mdwiki") {
+				$title2 = $params['to'] . "/" . $params['sourcetitle'];
+			};
+
+			$targetURL = $this->targetUrlCreator->createTargetUrl($title2, $params['to']);
+			$targeturl_wiki = SiteMapper::getPageURL($params['to'], $targetTitle->getPrefixedDBkey());
 			$result = [
 				'result' => 'success',
-				'targeturl' => $targetURL
+				'targeturl' => $targetURL,
+				'targeturl_wiki' => $targeturl_wiki,
+				'published_to' => $this->published_to
 			];
+
+			if (is_array($saveresult) && isset($saveresult['LinkToWikidata'])) {
+				$result['LinkToWikidata'] = $saveresult['LinkToWikidata'];
+			};
 
 			$this->translation->translation['status'] = TranslationStore::TRANSLATION_STATUS_PUBLISHED;
 			$this->translation->translation['targetURL'] = $targetURL;
 
-			if (isset($saveresult['edit']['newrevid'])) {
-				$result['newrevid'] = intval($saveresult['edit']['newrevid']);
+			if (isset($save_edit['newrevid'])) {
+				$result['newrevid'] = intval($save_edit['newrevid']);
 				$this->translation->translation['targetRevisionId'] = $result['newrevid'];
 			}
 
@@ -372,9 +384,10 @@ class ApiContentTranslationPublish extends ApiBase
 		} else {
 			$result = [
 				'result' => 'error',
-				'edit' => $saveresult['edit']
+				'edit' => $save_edit ?? []
 			];
 		}
+		$result['save_result_all'] = $save_result_all;
 
 		$this->getResult()->addValue(null, $this->getModuleName(), $result);
 	}
@@ -434,6 +447,7 @@ class ApiContentTranslationPublish extends ApiBase
 				ParamValidator::PARAM_ISMULTI => true,
 			],
 			/** @todo These should be renamed to something all-lowercase and lacking a "wp" prefix */
+			'campaign' => null,
 			'wpCaptchaId' => null,
 			'wpCaptchaWord' => null,
 			'cxversion' => [
