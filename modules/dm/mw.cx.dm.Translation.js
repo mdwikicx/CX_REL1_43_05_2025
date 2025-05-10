@@ -686,6 +686,7 @@ mw.cx.dm.Translation.prototype.setProgress = function ( progress ) {
  * @param {mw.cx.dm.DraftTranslationDTO} draft Saved translation.
  */
 mw.cx.dm.Translation.prototype.setSavedTranslation = function ( draft ) {
+	// 2025
 	this.setTargetURL( draft.targetURL );
 	this.setStatus( draft.status );
 	this.setTargetRevisionId( draft.targetRevisionId );

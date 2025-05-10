@@ -109,7 +109,7 @@
 			for (const key in siteMatrix) {
 				wikiLanguageCodes.push(siteMatrix[key].code);
 			}
-
+			wikiLanguageCodes.push('mdwiki');
 			return wikiLanguageCodes;
 		});
 	};

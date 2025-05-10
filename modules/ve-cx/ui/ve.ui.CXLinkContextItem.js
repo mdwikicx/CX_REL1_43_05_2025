@@ -175,12 +175,16 @@ ve.ui.CXLinkContextItem.prototype.renderBody = function () {
  * @return {jQuery.Promise}
  */
 ve.ui.CXLinkContextItem.prototype.getLinkInfo = function () {
+	var thisLanguage = this.inTargetSurface ? this.translation.getTargetLanguage() : this.translation.getSourceLanguage();
+
+	// if (thisLanguage === 'mdwiki') thisLanguage = 'en';
+
 	const thisTitle = this.model.getAttribute( 'normalizedTitle' ),
-		thisLanguage = this.inTargetSurface ? this.translation.getTargetLanguage() : this.translation.getSourceLanguage(),
 		otherLanguage = this.inTargetSurface ? this.translation.getSourceLanguage() : this.translation.getTargetLanguage(),
 		thisTitleKey = this.inTargetSurface ? 'targetTitle' : 'sourceTitle',
 		otherTitleKey = this.inTargetSurface ? 'sourceTitle' : 'targetTitle',
 		adaptationInfo = {};
+
 
 	const thisTitlePromise = this.thisLinkCache.get( thisTitle ).then( function ( thisLinkData ) {
 		adaptationInfo[ thisTitleKey ] = {
