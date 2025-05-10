@@ -82,6 +82,7 @@ mw.cx.SiteMapper.prototype.getLanguageCodeForWikiDomain = function (domain, fall
  */
 mw.cx.SiteMapper.prototype.getApi = function (language, options) {
 	const domain = this.getWikiDomainCode(language);
+
 	var url;
 	if (language === 'mdwiki') {
 		url = this.SiteTemplates_mdwiki.api;
@@ -208,8 +209,7 @@ mw.cx.SiteMapper.prototype.getLanguagePairs = function () {
 			.then((response) => response.json())
 			.then((response) => ({
 				targetLanguages: response.target,
-				sourceLanguages: ["en", "ar"],
-				// sourceLanguages: response.source,
+				sourceLanguages: response.source,
 			}))
 			.catch((response) => {
 				mw.log(
