@@ -8,12 +8,16 @@
  * @param {ve.init.mw.CXTarget} veTarget
  * @param {Object} config Translation configuration
  * @param {mw.cx.SiteMapper} config.siteMapper SiteMapper instance
+ * @param {string} config.campaign Campaign name for targeting purposes
  */
 mw.cx.TargetArticle = function MWCXTargetArticle(translation, veTarget, config) {
 	this.translation = translation;
 	this.veTarget = veTarget;
 	this.config = config;
 	this.siteMapper = config.siteMapper;
+	this.campaign = config.campaign || '';;
+
+	console.log('MWCXTargetArticle: campaign: ' + this.campaign);
 	this.sourceTitle = translation.getSourceTitle();
 	this.sourceLanguage = translation.getSourceLanguage();
 	this.targetLanguage = translation.getTargetLanguage();
@@ -144,7 +148,9 @@ mw.cx.TargetArticle.prototype.publish = function (hasIssues, hasTooMuchUnmodifie
 			to: this.targetLanguage,
 			sourcetitle: this.sourceTitle,
 			title: this.getTargetTitle(),
+			// user: mw.user.getName(),
 			html,
+			campaign: this.campaign,
 			categories: this.getTargetCategories(hasTooMuchUnmodifiedText),
 			publishtags: this.getTags(hasTooMuchUnmodifiedText),
 			wpCaptchaId: this.captcha && this.captcha.id,
@@ -208,13 +214,46 @@ mw.cx.TargetArticle.prototype.publishSection = function () {
 mw.cx.TargetArticle.prototype.publishSuccess = function (response, jqXHR) {
 	const publishAction = this.translation.isSectionTranslation() ? 'cxpublishsection' : 'cxpublish';
 	const publishResult = response[publishAction];
+	console.log("publishResult:");
 
+	if (publishResult.save_result_all) {
+		console.log("_____");
+		console.log("local result: " + JSON.stringify(publishResult.save_result_all.result));
+		console.log("mdwiki_result: " + JSON.stringify(publishResult.save_result_all.mdwiki_result));
+	} else {
+		console.log(JSON.stringify(publishResult));
+	}
+	// {"result":"error","edit":{"error":"noaccess","username":"Mr. Ibrahem"}}
 	if (publishResult.result === 'success') {
-		this.translation.setTargetURL(publishResult.targeturl);
-		return this.publishComplete(publishResult.targettitle || null);
+		var targeturl = publishResult.targeturl;
+		if (this.sourceLanguage === "mdwiki" && publishResult.published_to != "local") {
+			targeturl = publishResult.targeturl_wiki;
+		}
+		var qid = "";
+		var wd_result = "";
+		if (publishResult.LinkToWikidata) {
+			qid = publishResult.LinkToWikidata.qid;
+			console.log('LinkToWikidata: ' + JSON.stringify(publishResult.LinkToWikidata));
+			// LinkToWikidata: {"result":"success","qid":"Q474070"}
+			wd_result = publishResult.LinkToWikidata.result;
+		}
+
+		this.translation.setTargetURL(targeturl);
+
+		var new_title = publishResult.save_result_all.mdwiki_result.edit.title;
+		// mdwiki_result: {"warnings":{"main":{"*":"Unrecognized parameters: wpCaptchaId, wpCaptchaWord."}},"edit":{"new":"","result":"Success","pageid":9895285,"title":"مستخدم:Mr. Ibrahem/أوبلتوكسيماب","contentmodel":"wikitext","oldrevid":0,"newrevid":69736856,"newtimestamp":"2025-03-02T00:36:55Z","watched":""},"LinkToWikidata":{"error":"Cannot create link for namespace:2","nserror":"","qid":"Q7876570"}}
+
+		var done = this.publishComplete(new_title || null);
+
+		if (this.sourceLanguage === "mdwiki") {
+			var title2 = new_title || this.getTargetTitle()
+			mw.cx.TargetArticle.prototype.addMdwikiLinks(this.targetLanguage, title2, qid, wd_result)
+		}
+
+		return done;
 	}
 
-	if (publishResult.edit.captcha) {
+	if (publishResult && publishResult.edit && publishResult.edit.captcha) {
 		// If there is a captcha challenge, get the solution and retry.
 		return this.loadCaptchaDialog().then(
 			this.showErrorCaptcha.bind(this, publishResult.edit.captcha)
@@ -266,6 +305,28 @@ mw.cx.TargetArticle.prototype.publishFail = function (errorCode, messageOrFailOb
 		this.getTargetTitle(),
 		data
 	);
+	let mddx = "OAuth session expired, Please Log again to Translation Dashboard";
+	// cx-message-widget-message
+	let mddxlink = "OAuth session expired, Please Log again to <a href='https://mdwiki.toolforge.org/Translation_Dashboard/auth.php?a=login' target='_blank'>Translation Dashboard</a>";
+	// {"result":"error","edit":{"error":"noaccess","username":"Mr. Ibrahem"}}
+	if (data.edit.error) {
+		if (data.edit.error === 'noaccess' || (data.edit.error && data.edit.error.code === 'noaccess')) {
+			this.showPublishError(mddx, "no access_keys in Translation_Dashboard");
+			// $('.cx-message-widget-message').html(mddxlink)
+			$('.cx-message-widget-message')
+				.empty()
+				.append(
+					$('<span>').text('OAuth session expired, Please Log again in '),
+					$('<a>')
+						.attr('href', 'https://mdwiki.toolforge.org/Translation_Dashboard/auth.php?a=login')
+						.attr('target', '_blank')
+						.text('Translation Dashboard')
+				);
+			$('.cx-message-widget-details').html(" Then refresh the page");
+			// $('.cx-message-widget-details').html("<a href='https://mdwiki.toolforge.org/Translation_Dashboard/auth.php?a=login' target='_blank'>Translation Dashboard</a>")
+			return;
+		}
+	}
 
 	const editError = data.error;
 	if (editError) {
@@ -370,7 +431,10 @@ mw.cx.TargetArticle.prototype.showErrorCaptcha = function (apiResult) {
 		// Based on FancyCaptcha::getFormInformation() (https://git.io/v6mml) and
 		// ext.confirmEdit.fancyCaptcha.js in the ConfirmEdit extension.
 		mw.loader.load('ext.confirmEdit.fancyCaptcha');
-		this.captchaDialog.setFancyCaptcha(apiResult.url);
+
+		let wikiurl = "https://" + this.targetLanguage + ".wikipedia.org";
+		this.captchaDialog.setFancyCaptcha(wikiurl + apiResult.url);
+
 	} else if (apiResult.type === 'simple' || apiResult.type === 'math') {
 		// SimpleCaptcha and MathCaptcha
 		this.captchaDialog.setCaptcha('captcha-create', apiResult.question, apiResult.mime);
@@ -619,3 +683,23 @@ mw.cx.TargetArticle.prototype.getTags = function (hasTooMuchUnmodifiedText) {
 
 	return tagString;
 };
+
+mw.cx.TargetArticle.prototype.addMdwikiLinks = function (targetLanguage, targetTitle, qid, wd_result) {
+	const pp = {
+		lang: targetLanguage,
+		title: targetTitle,
+		save: 1
+	};
+	var url = "https://mdwiki.toolforge.org/fixwikirefs.php?" + $.param(pp);
+	let link = `<a href='${url}' target='_blank'>Fix References</a>`
+
+	var wdlink = "";
+	if (qid != "" && qid != "undefined" && wd_result != "success") {
+		var target_wiki = targetLanguage + "wiki"
+		var wdurl = `https://www.wikidata.org/wiki/Special:SetSiteLink/${qid}/${target_wiki}?` + $.param({ page: targetTitle });
+		wdlink = ` - <a href='${wdurl}' target='_blank'>Link to Wikidata</a>`
+	}
+	var html = `<div style="float:left;">${link}${wdlink}</div>`;
+
+	$('.cx-message-widget-details').append(html);
+}

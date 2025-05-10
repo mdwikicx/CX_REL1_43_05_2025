@@ -42,6 +42,52 @@ use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
 use Wikimedia\Stats\IBufferingStatsdDataFactory;
 
+function post_to_target($params)
+{
+	// $url = 'https://mdwiki.toolforge.org/Translation_Dashboard/publish/main.php';
+	$url = 'https://mdwiki.toolforge.org/publish/main.php';
+	$ch = curl_init();
+
+	// if ($ch === false) {
+	// 	throw new \RuntimeException('curl_init() failed');
+	// }
+
+	$usr_agent = "WikiProjectMed Translation Dashboard/1.0 (https://mdwiki.toolforge.org/; tools.mdwiki@toolforge.org)";
+
+	curl_setopt($ch, CURLOPT_URL, $url);
+	curl_setopt($ch, CURLOPT_POST, 1);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
+
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+	// mdwiki_result: {"response":"Requests must have a user agent"}
+	curl_setopt($ch, CURLOPT_USERAGENT, $usr_agent);
+	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
+	curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+
+	$response = curl_exec($ch);
+
+	$curlErr   = curl_error($ch);
+	$status    = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+	curl_close($ch);
+
+	if ($response === false) {
+		return ['error' => $curlErr ?: 'Unknown cURL error', 'response' => $response];
+	}
+
+	if ($status !== 200) {
+		return ['error' => "Unexpected HTTP status $status", 'response' => $response];
+	}
+
+	$js = json_decode($response, true);
+
+	if ($js === null) {
+		return ['error' => 'Invalid JSON', 'response' => $response];
+	}
+
+	return $js ?? ['response' => $response];
+}
+
 class ApiContentTranslationPublish extends ApiBase
 {
 
@@ -73,13 +119,35 @@ class ApiContentTranslationPublish extends ApiBase
 		$this->translationStore = $translationStore;
 		$this->targetUrlCreator = $targetUrlCreator;
 		$this->changeTagsStore = $changeTagsStore;
+		$this->published_to = "local";
 	}
 
 	protected function getParsoidClient(): ParsoidClient
 	{
 		return $this->parsoidClientFactory->createParsoidClient();
 	}
+	protected function publishToMdwiki($title, $wikitext, $params, $sourceRevisionId, $summary, $user_name)
+	{
+		$t_Params = [
+			'title' => $title->getPrefixedDBkey(),
+			'revid' => $sourceRevisionId,
+			'text' => $wikitext,
+			'user' => $user_name,
+			'summary' => $summary,
+			'target' => $params['to'],
+			'campaign' => $params['campaign'] ?? '',
+			'sourcetitle' => $params['sourcetitle'],
+		];
 
+		// wpCaptchaId, wpCaptchaWord
+		if (isset($params['wpCaptchaId'])) {
+			$t_Params['wpCaptchaId'] = $params['wpCaptchaId'];
+			$t_Params['wpCaptchaWord'] = $params['wpCaptchaWord'];
+		}
+
+		$mdwiki_result = post_to_target($t_Params);
+		return $mdwiki_result;
+	}
 	protected function saveWikitext($title, $wikitext, $params)
 	{
 		$categories = $this->getCategories($params);
@@ -93,19 +161,41 @@ class ApiContentTranslationPublish extends ApiBase
 			$wikitext .= $categoryText;
 		}
 
-		$sourceLink = '[[:' . Sitemapper::getDomainCode($params['from'])
+		$wikitext = trim($wikitext);
+
+		$sourceRevisionId = $this->translation->translation['sourceRevisionId'];
+
+		$sourceLink = '[[:' . SiteMapper::getDomainCode($params['from'])
 			. ':Special:Redirect/revision/'
-			. $this->translation->translation['sourceRevisionId']
-			. '|' . $params['sourcetitle'] . ']]';
+			. $sourceRevisionId
+			. '|' . $params['sourcetitle'] . ']] to:' . $params['to'] . " #mdwikicx";
 
 		$summary = $this->msg(
 			'cx-publish-summary',
 			$sourceLink
 		)->inContentLanguage()->text();
 
+		$user_name = $this->getUser()->getName();
+
+		if (isset($params['user']) && $params['user'] != '') {
+			$user_name = $params['user'];
+		}
+
+		$mdwiki_result = false;
+
+		if ($params['from'] === "mdwiki") { #$mdwiki_result
+
+			$mdwiki_result = $this->publishToMdwiki($title, $wikitext, $params, $sourceRevisionId, $summary, $user_name);
+			$this->published_to = "mdwiki";
+			// return $Result;
+
+			$wikitext = "<pre>$wikitext</pre>";
+			$wikitext .= "\n{{tr|" . $params['to'] . '|' . $params['sourcetitle'] . '|' . $user_name . '}}';
+		}
+
 		$apiParams = [
 			'action' => 'edit',
-			'title' => $title->getPrefixedDBkey(),
+			'title' => ($params['from'] === 'mdwiki') ? $params['to'] . "/" . $params['sourcetitle'] : $title->getPrefixedDBkey(),
 			'text' => $wikitext,
 			'summary' => $summary,
 		];
@@ -122,8 +212,13 @@ class ApiContentTranslationPublish extends ApiBase
 		);
 
 		$api->execute();
+		$result = $api->getResult()->getResultData();
+		// if ( $params['from'] === "mdwiki") return $mdwiki_result;
 
-		return $api->getResult()->getResultData();
+		return [
+			'result' => $result,
+			'mdwiki_result' => $mdwiki_result,
+		];
 	}
 
 	protected function getTags(array $params)
@@ -263,30 +358,51 @@ class ApiContentTranslationPublish extends ApiBase
 			);
 		}
 
-		$saveresult = $this->saveWikitext($targetTitle, $wikitext, $params);
-		$editStatus = $saveresult['edit']['result'];
+		$save_result_all = $this->saveWikitext($targetTitle, $wikitext, $params);
+
+		$saveresult = $save_result_all['result'] ?? [];
+		$saveresult_mdwiki = $save_result_all['mdwiki_result'] ?? [];
+
+		if ($params['from'] === "mdwiki") {
+			$saveresult = $saveresult_mdwiki;
+		};
+
+		$save_edit = $saveresult['edit'] ?? [];
+		$editStatus = $saveresult['edit']['result'] ?? [];
 
 		if ($editStatus === 'Success') {
-			if (isset($saveresult['edit']['newrevid'])) {
+			if (isset($save_edit['newrevid'])) {
 				$tags = $this->getTags($params);
 				// Add the tags post-send, after RC row insertion
-				$revId = intval($saveresult['edit']['newrevid']);
+				$revId = intval($save_edit['newrevid']);
 				DeferredUpdates::addCallableUpdate(function () use ($revId, $tags) {
 					$this->changeTagsStore->addTags($tags, null, $revId, null);
 				});
 			}
+			$title2 = $targetTitle->getPrefixedDBkey();
 
-			$targetURL = $this->targetUrlCreator->createTargetUrl($targetTitle->getPrefixedDBkey(), $params['to']);
+			if ($params['from'] === "mdwiki") {
+				$title2 = $params['to'] . "/" . $params['sourcetitle'];
+			};
+
+			$targetURL = $this->targetUrlCreator->createTargetUrl($title2, $params['to']);
+			$targeturl_wiki = SiteMapper::getPageURL($params['to'], $targetTitle->getPrefixedDBkey());
 			$result = [
 				'result' => 'success',
-				'targeturl' => $targetURL
+				'targeturl' => $targetURL,
+				'targeturl_wiki' => $targeturl_wiki,
+				'published_to' => $this->published_to
 			];
+
+			if (is_array($saveresult) && isset($saveresult['LinkToWikidata'])) {
+				$result['LinkToWikidata'] = $saveresult['LinkToWikidata'];
+			};
 
 			$this->translation->translation['status'] = TranslationStore::TRANSLATION_STATUS_PUBLISHED;
 			$this->translation->translation['targetURL'] = $targetURL;
 
-			if (isset($saveresult['edit']['newrevid'])) {
-				$result['newrevid'] = intval($saveresult['edit']['newrevid']);
+			if (isset($save_edit['newrevid'])) {
+				$result['newrevid'] = intval($save_edit['newrevid']);
 				$this->translation->translation['targetRevisionId'] = $result['newrevid'];
 			}
 
@@ -298,9 +414,10 @@ class ApiContentTranslationPublish extends ApiBase
 		} else {
 			$result = [
 				'result' => 'error',
-				'edit' => $saveresult['edit']
+				'edit' => $save_edit ?? []
 			];
 		}
+		$result['save_result_all'] = $save_result_all;
 
 		$this->getResult()->addValue(null, $this->getModuleName(), $result);
 	}
@@ -360,6 +477,7 @@ class ApiContentTranslationPublish extends ApiBase
 				ParamValidator::PARAM_ISMULTI => true,
 			],
 			/** @todo These should be renamed to something all-lowercase and lacking a "wp" prefix */
+			'campaign' => null,
 			'wpCaptchaId' => null,
 			'wpCaptchaWord' => null,
 			'cxversion' => [

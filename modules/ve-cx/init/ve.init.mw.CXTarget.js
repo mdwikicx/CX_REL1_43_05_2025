@@ -535,11 +535,11 @@ ve.init.mw.CXTarget.prototype.onSurfaceReady = function () {
 		// By: Ibrahem Qasim
 		const sections = $('.cx-column--translation article').find('section');
 
-		for (let i = 0; i < sections.length; i++) {
-			setTimeout(() => {
-				this.prefetchTranslationForSection(i, true);
-			}, i * 1000);
-		}
+		for ( let i = 0; i < sections.length; i++ ) {
+			setTimeout( () => {
+				this.prefetchTranslationForSection( i, true );
+			}, i * 1000 );
+
 	}
 };
 
@@ -1120,19 +1120,17 @@ ve.init.mw.CXTarget.prototype.changeContentSource = function (
  *
  * @param {number} sectionNumber
  */
-ve.init.mw.CXTarget.prototype.prefetchTranslationForSection = function ( sectionNumber, set_it ) {
+ve.init.mw.CXTarget.prototype.prefetchTranslationForSection = function ( sectionNumber, applyImmediately ) {
 	const $section = this.sourceSurface.$element.find( '#cxSourceSection' + sectionNumber );
 	if ( $section.length ) {
 		this.MTManager.getPreferredProvider().then( function ( provider ) {
 			this.translateSection( $section.prop( 'id' ), provider );
 			// auto translation
-			if (set_it) {
+         	if ( applyImmediately ) {
 				const sectionNode = this.getTargetSectionNode( $section.prop( 'id' ) );
-				this.changeContentSource(
-					sectionNode,
-					null,
-					provider
-				);
+				if ( sectionNode ) {
+					this.changeContentSource( sectionNode, null, provider );
+				}
 			}
 		}.bind( this ) );
 	}
