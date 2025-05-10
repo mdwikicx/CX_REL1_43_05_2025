@@ -22,6 +22,7 @@ mw.cx.SiteMapper = function (overrides) {
 
 	const siteMapperConfig = Object.assign({}, config, overrides);
 	this.siteTemplates = siteMapperConfig.SiteTemplates;
+	this.SiteTemplates_mdwiki = siteMapperConfig.SiteTemplates_mdwiki;
 	this.codeMap = siteMapperConfig.DomainCodeMapping;
 	this.translateInTarget = siteMapperConfig.TranslateInTarget;
 
@@ -81,7 +82,12 @@ mw.cx.SiteMapper.prototype.getLanguageCodeForWikiDomain = function (domain, fall
  */
 mw.cx.SiteMapper.prototype.getApi = function (language, options) {
 	const domain = this.getWikiDomainCode(language);
-	const url = this.siteTemplates.api.replace('$1', domain);
+	var url;
+	if (language === 'mdwiki') {
+		url = this.SiteTemplates_mdwiki.api;
+	} else {
+		url = this.siteTemplates.api.replace('$1', domain);
+	}
 	options = Object.assign({ anonymous: true }, options);
 	return new mw.ForeignApi(url, options);
 };
@@ -122,12 +128,19 @@ mw.cx.SiteMapper.prototype.getPageUrl = function (language, title, params, hash)
 	if (this.isMobileDomain()) {
 		prefix += '.m';
 	}
-	let base = this.siteTemplates.view;
+	var templates = this.siteTemplates;
+	if (language === 'mdwiki') {
+		templates = this.SiteTemplates_mdwiki;
+	}
+	let base = templates.view;
 	if (params && Object.keys(params).length > 0) {
-		base = this.siteTemplates.action || this.siteTemplates.view;
+		base = templates.action || templates.view;
 	}
 
-	base = base.replace('$1', prefix).replace('$2', mw.util.wikiUrlencode(title).replace(/\$/g, '$$$$'));
+	if (domain !== 'mdwiki') {
+		base = base.replace('$1', prefix);
+	}
+	base = base.replace('$2', mw.util.wikiUrlencode(title).replace(/\$/g, '$$$$'));
 
 	// use location object as base URL, in order to handle protocol relative paths
 	// when base includes an absolute path, the location object won't be taken into account
@@ -161,13 +174,19 @@ mw.cx.SiteMapper.prototype.getCXServerUrl = function (module, params) {
 	if (mw.cx.getCXVersion() === 2) {
 		cxserverURL = cxserverURL.replace('v1', 'v2');
 	}
-
+	// if module has /mdwiki then replace it with /en
+	if (module.indexOf('/mdwiki') > -1) {
+		module = module.replace('/mdwiki', '/en');
+	}
 	return cxserverURL + module;
 };
 
 mw.cx.SiteMapper.prototype.getRestbaseUrl = function (language, module, params) {
 	const domain = this.getWikiDomainCode(language);
-	const url = this.siteTemplates.restbase.replace('$1', domain);
+	var url = this.siteTemplates.restbase.replace('$1', domain);
+	if (language === 'mdwiki') {
+		url = this.SiteTemplates_mdwiki.restbase;
+	}
 
 	if (params) {
 		for (const paramKey in params) {
@@ -189,7 +208,8 @@ mw.cx.SiteMapper.prototype.getLanguagePairs = function () {
 			.then((response) => response.json())
 			.then((response) => ({
 				targetLanguages: response.target,
-				sourceLanguages: response.source
+				sourceLanguages: ["en", "ar"],
+				// sourceLanguages: response.source,
 			}))
 			.catch((response) => {
 				mw.log(
@@ -201,6 +221,7 @@ mw.cx.SiteMapper.prototype.getLanguagePairs = function () {
 				return Promise.reject();
 			});
 	}
+
 	return this.languagePairsPromise;
 };
 

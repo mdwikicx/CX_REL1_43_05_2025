@@ -18,6 +18,7 @@ mw.cx.ui.PageTitleWidget = function ( model, config ) {
 		autosize: true
 	} );
 
+	this.language = config.language;
 	this.model = model;
 
 	// Parent constructor
@@ -90,11 +91,13 @@ mw.cx.ui.PageTitleWidget.prototype.validateTitle = function ( value ) {
 };
 
 mw.cx.ui.PageTitleWidget.prototype.getExistingTitleWarning = function () {
+	var href = mw.util.getUrl( this.getValue() );
+	var href2 = "//" + this.language + ".wikipedia.org/wiki/" + encodeURIComponent( this.getValue() );
 	return {
 		name: 'existing-title',
 		message: mw.message(
 			'cx-tools-linter-page-exists-message',
-			$( '<a>' ).prop( 'href', mw.util.getUrl( this.getValue() ) ).text( this.getValue() )
+			$( '<a>' ).prop( 'href', href2 ).text( this.getValue() )
 		),
 		messageInfo: {
 			title: mw.msg( 'cx-tools-linter-page-exists' ),

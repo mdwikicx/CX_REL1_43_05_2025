@@ -26,6 +26,9 @@ ve.dm.CXLinkAnnotation.static.matchFunction = function ( domElement ) {
 ve.dm.CXLinkAnnotation.static.toDataElement = function ( domElements, converter ) {
 	let dataElement = ve.dm.CXLinkAnnotation.super.static.toDataElement.call( this, domElements, converter );
 
+	// console.log("domElements[ 0 ]: ")
+	// console.log(domElements[ 0 ])
+
 	if ( !dataElement ) {
 		// ve.dm.CXLinkAnnotation.super.static.toDataElement has assumptions about document.baseURI.
 		// baseURI can use URL patterns like /wiki/$1 or w/index.php?title=$1. It also uses
@@ -39,6 +42,15 @@ ve.dm.CXLinkAnnotation.static.toDataElement = function ( domElements, converter 
 			// Example: href=./Oxygen#Occurance in the Oxygen article.
 			title = domElements[ 0 ].getAttribute( 'href' ).replace( /^\.\//, '' );
 		}
+		// if title endswith ( |) then remove it
+		//  data-linkid="5" href="ବିକିରଣ ଚିକିତ୍ସା |" id="mwBA" rel="mw:WikiLink" title="ବିକିରଣ ଚିକିତ୍ସା |">
+		// By: Ibrahem Qasim
+		if ( title.endsWith( '|' ) ) {
+			title = title.substring( 0, title.length - 1 );
+		}
+
+		// console.log("title: ", title)
+
 		dataElement = ve.dm.CXLinkAnnotation.super.static.dataElementFromTitle.call(
 			this,
 			mw.Title.newFromText( title )

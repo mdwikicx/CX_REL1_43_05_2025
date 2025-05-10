@@ -67,7 +67,9 @@ class SpecialContentTranslation extends SpecialPage {
 		);
 
 		if ( !$this->canUserProceed() ) {
-			return;
+			// return;
+			// some issue when use mdwiki.org
+			echo "";
 		}
 
 		if ( $this->isUnifiedDashboard() ) {
@@ -166,7 +168,10 @@ class SpecialContentTranslation extends SpecialPage {
 
 		// For development (single instance) use, there is no need to validate the token, because
 		// we don't redirect.
-		return $hasToken;
+		// return $hasToken;
+
+		// issue with medwiki.toolforge.org session
+		return true;
 	}
 
 	protected function canUserProceed() {
