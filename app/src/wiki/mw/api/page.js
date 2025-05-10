@@ -188,12 +188,64 @@ const fetchPageContent = (
  * @param {string|null} revision
  * @return {Promise<String>}
  */
+const fetchSegmentedContent_mdwiki = (
+  sourceLanguage,
+  targetLanguage,
+  sourceTitle,
+  revision = null
+) => {
+  const title = sourceTitle.replace(/ /g, "_")
+  const sourceWikiCode = sourceLanguage;
+  const targetWikiCode = siteMapper.getWikiDomainCode(targetLanguage);
+
+  const cxServerParams = {
+    sourcelanguage: sourceWikiCode,
+    targetlanguage: targetWikiCode,
+    section0: 1,
+  };
+
+  // var cxServerApiURL = "https://medwiki.toolforge.org/get_html.php";
+  var cxServerApiURL = "/get_html.php";
+
+  // If revision is requested, load that revision of page.
+  if (revision) {
+    cxServerParams.revision = revision;
+  } else {
+    cxServerParams.title = title;
+  }
+  const options = {
+    method: 'GET',
+    dataType: 'json'
+  }
+  const searchParams = new URLSearchParams(cxServerParams);
+
+  cxServerApiURL = `${cxServerApiURL}?${searchParams.toString()}`;
+
+  const result = fetch(cxServerApiURL, options)
+    .then((response) => response.json())
+    .then((response) => response.segmentedContent);
+
+  return result;
+};
+
+/**
+ * Fetches segmented content of a page for given source language,
+ * target language and source title.
+ * @param {string} sourceLanguage
+ * @param {string} targetLanguage
+ * @param {string} sourceTitle
+ * @param {string|null} revision
+ * @return {Promise<String>}
+ */
 const fetchSegmentedContent = (
   sourceLanguage,
   targetLanguage,
   sourceTitle,
   revision = null
 ) => {
+  if (sourceLanguage === "mdwiki") {
+    return fetchSegmentedContent_mdwiki(sourceLanguage, targetLanguage, sourceTitle, revision);
+  }
   const sourceWikiCode = siteMapper.getWikiDomainCode(sourceLanguage);
   const targetWikiCode = siteMapper.getWikiDomainCode(targetLanguage);
   const cxServerParams = {
