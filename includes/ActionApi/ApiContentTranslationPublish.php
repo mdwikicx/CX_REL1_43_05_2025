@@ -154,9 +154,27 @@ class ApiContentTranslationPublish extends ApiBase
 			$sourceLink
 		)->inContentLanguage()->text();
 
+		$user_name = $this->getUser()->getName();
+
+		if (isset($params['user']) && $params['user'] != '') {
+			$user_name = $params['user'];
+		}
+
+		$mdwiki_result = false;
+
+		if ($params['from'] === "mdwiki") { #$mdwiki_result
+
+			$mdwiki_result = $this->publishToMdwiki($title, $wikitext, $params, $sourceRevisionId, $summary, $user_name);
+			$this->published_to = "mdwiki";
+			// return $Result;
+
+			$wikitext = "<pre>$wikitext</pre>";
+			$wikitext .= "\n{{tr|" . $params['to'] . '|' . $params['sourcetitle'] . '|' . $user_name . '}}';
+		}
+
 		$apiParams = [
 			'action' => 'edit',
-			'title' => $title->getPrefixedDBkey(),
+			'title' => $params['to'] . "/" . $params['sourcetitle'], // $title->getPrefixedDBkey(),
 			'text' => $wikitext,
 			'summary' => $summary,
 		];
@@ -173,8 +191,13 @@ class ApiContentTranslationPublish extends ApiBase
 		);
 
 		$api->execute();
+		$result = $api->getResult()->getResultData();
+		// if ( $params['from'] === "mdwiki") return $mdwiki_result;
 
-		return $api->getResult()->getResultData();
+		return [
+			'result' => $result,
+			'mdwiki_result' => $mdwiki_result,
+		];
 	}
 
 	protected function getTags(array $params)
