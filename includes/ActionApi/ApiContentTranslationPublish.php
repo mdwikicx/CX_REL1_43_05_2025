@@ -140,10 +140,14 @@ class ApiContentTranslationPublish extends ApiBase
 			$wikitext .= $categoryText;
 		}
 
+		$wikitext = trim($wikitext);
+
+		$sourceRevisionId = $this->translation->translation['sourceRevisionId'];
+
 		$sourceLink = '[[:' . Sitemapper::getDomainCode($params['from'])
 			. ':Special:Redirect/revision/'
-			. $this->translation->translation['sourceRevisionId']
-			. '|' . $params['sourcetitle'] . ']]';
+			. $sourceRevisionId
+			. '|' . $params['sourcetitle'] . ']] to:' . $params['to'] . " #mdwikicx";
 
 		$summary = $this->msg(
 			'cx-publish-summary',
