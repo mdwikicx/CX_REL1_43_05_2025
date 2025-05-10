@@ -1,0 +1,14 @@
+{
+	"@metadata": {
+		"authors": [
+			"Moilleadóir",
+			"Halle"
+		]
+	},
+	"cx-publish-button-publishing": "Ag foilsiú...",
+	"cx-translation-filter-published-translations": "Foilsithe",
+	"cx-translation-status-published": "Foilsithe",
+	"cx-stats-published-translations-title": "Aistriúcháin foilsithe",
+	"cx-stats-published-translations-label": "Aistriúcháin foilsithe",
+	"cx-stats-total-published": "Iomlán foilsithe"
+}

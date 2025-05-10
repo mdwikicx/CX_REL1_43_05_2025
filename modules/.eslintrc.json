@@ -1,0 +1,26 @@
+{
+	"root": true,
+	"extends": [
+		"wikimedia/client-es6",
+		"wikimedia/jquery",
+		"wikimedia/mediawiki"
+	],
+	"globals": {
+		"ve": "readonly",
+		"moment": "readonly",
+		"Promise": "readonly",
+		"LanguageSearcher": true,
+		"publishErrorCaptcha": true,
+		"mouseenter": true,
+		"mouseleave": true,
+		"enter": true
+	},
+	"rules": {
+		"max-len": "off",
+		"no-jquery/no-global-selector": "off",
+		"no-shadow": "warn",
+		"compat/compat": "warn",
+		"vue/no-v-text": "warn",
+		"es-x/no-resizable-and-growable-arraybuffers": "off"
+	}
+}

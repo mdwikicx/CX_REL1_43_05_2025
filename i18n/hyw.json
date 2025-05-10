@@ -1,0 +1,30 @@
+{
+	"@metadata": {
+		"authors": [
+			"Azniv Stepanian",
+			"Kareyac",
+			"Շահէն"
+		]
+	},
+	"cx-dashboard-header": "Թարգմանութիւններ",
+	"cx-header-progressbar-text": "$1%-ը {{PLURAL:$1|թարգմանուած է}}",
+	"cx-publish-button": "Հրապարակել",
+	"cx-captcha-dialog-cancel": "Չեղարկել",
+	"cx-feedback-link": "Կարծիք յայտնել",
+	"cx-draft-cancel-button-label": "Չեղարկել",
+	"cx-campaign-no-thanks": "Ոչ, շնորհակալութիւն",
+	"cx-campaign-contributionsmenu-mytranslations": "Թարգմանութիւններ",
+	"cx-stats-published-target-source": "Թարգմանութիւններ",
+	"echo-category-title-cx": "Թարգմանութիւններ",
+	"cx-tools-linter-restart-translation-cancel": "Չեղարկել",
+	"cx-sx-sentence-selector-translation-options-empty-card-title": "Սկսիլ դատարկ նախադասութեամբ մը",
+	"cx-sx-content-comparator-content-header-translate-button-label": "Թարգմանէ",
+	"cx-contributecard-entrypoint-title": "Թարգմանութիւններ",
+	"cx-sx-suggestions-filters-done-button-label": "Եղած է",
+	"cx-sx-suggestions-filter-default-group-label": "Ինքնագործ",
+	"cx-articletopics-topic-africa": "Ափրիկէ",
+	"cx-articletopics-topic-asia": "Ասիա",
+	"cx-articletopics-topic-music": "Երաժշտութիւն",
+	"cx-articletopics-topic-history": "Պատմութիւն",
+	"cx-articletopics-topic-biology": "Կենսաբանութիւն"
+}
