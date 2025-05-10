@@ -376,7 +376,10 @@ mw.cx.TargetArticle.prototype.showErrorCaptcha = function (apiResult) {
 		// Based on FancyCaptcha::getFormInformation() (https://git.io/v6mml) and
 		// ext.confirmEdit.fancyCaptcha.js in the ConfirmEdit extension.
 		mw.loader.load('ext.confirmEdit.fancyCaptcha');
-		this.captchaDialog.setFancyCaptcha(apiResult.url);
+
+		let wikiurl = "https://" + this.targetLanguage + ".wikipedia.org";
+		this.captchaDialog.setFancyCaptcha(wikiurl + apiResult.url);
+
 	} else if (apiResult.type === 'simple' || apiResult.type === 'math') {
 		// SimpleCaptcha and MathCaptcha
 		this.captchaDialog.setCaptcha('captcha-create', apiResult.question, apiResult.mime);
@@ -625,3 +628,23 @@ mw.cx.TargetArticle.prototype.getTags = function (hasTooMuchUnmodifiedText) {
 
 	return tagString;
 };
+
+mw.cx.TargetArticle.prototype.addMdwikiLinks = function (targetLanguage, targetTitle, qid, wd_result) {
+	const pp = {
+		lang: targetLanguage,
+		title: targetTitle,
+		save: 1
+	};
+	var url = "https://mdwiki.toolforge.org/fixwikirefs.php?" + $.param(pp);
+	let link = `<a href='${url}' target='_blank'>Fix References</a>`
+
+	var wdlink = "";
+	if (qid != "" && qid != "undefined" && wd_result != "success") {
+		var target_wiki = targetLanguage + "wiki"
+		var wdurl = `https://www.wikidata.org/wiki/Special:SetSiteLink/${qid}/${target_wiki}?` + $.param({ page: targetTitle });
+		wdlink = ` - <a href='${wdurl}' target='_blank'>Link to Wikidata</a>`
+	}
+	var html = `<div style="float:left;">${link}${wdlink}</div>`;
+
+	$('.cx-message-widget-details').append(html);
+}
