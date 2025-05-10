@@ -337,8 +337,17 @@ class ApiContentTranslationPublish extends ApiBase
 			);
 		}
 
-		$saveresult = $this->saveWikitext($targetTitle, $wikitext, $params);
-		$editStatus = $saveresult['edit']['result'];
+		$save_result_all = $this->saveWikitext($targetTitle, $wikitext, $params);
+
+		$saveresult = $save_result_all['result'] ?? [];
+		$saveresult_mdwiki = $save_result_all['mdwiki_result'] ?? [];
+
+		if ($params['from'] === "mdwiki") {
+			$saveresult = $saveresult_mdwiki;
+		};
+
+		$save_edit = $saveresult['edit'] ?? [];
+		$editStatus = $saveresult['edit']['result'] ?? [];
 
 		if ($editStatus === 'Success') {
 			if (isset($save_edit['newrevid'])) {
