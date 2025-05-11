@@ -15,7 +15,7 @@ mw.cx.TargetArticle = function MWCXTargetArticle(translation, veTarget, config) 
 	this.veTarget = veTarget;
 	this.config = config;
 	this.siteMapper = config.siteMapper;
-	this.campaign = config.campaign || '';;
+	this.campaign = config.campaign || '';
 
 	console.log('MWCXTargetArticle: campaign: ' + this.campaign);
 	this.sourceTitle = translation.getSourceTitle();
